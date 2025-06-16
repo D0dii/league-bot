@@ -38,7 +38,9 @@ export const notifyAboutLastUserMatch = async (
       await channel.send("Loris ty nie ważne co robisz to do dupy ci idzie");
     } else {
       const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
-      await channel.send(`${player.riotIdGameName} zagrał grę i miał ${message}`);
+      await channel.send(
+        `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}`
+      );
     }
     await updateUserLastMatchId(username, currentMatchId);
   } else {

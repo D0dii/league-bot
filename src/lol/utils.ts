@@ -14,7 +14,7 @@ export const getMatchDetails = async (matchId: string, token: string) => {
 };
 
 export const generateMessageToChannel = (kills: number, assists: number, deaths: number, isWon: boolean) => {
-  const kda = (kills + assists) / deaths;
+  const kda = Number(((kills + assists) / (deaths > 0 ? deaths : 1)).toFixed(2));
   if (kda > 1 && isWon) {
     return `kda na plus równe ${kda}, a do tego wygrana`;
   } else if (kda > 1 && !isWon) {
