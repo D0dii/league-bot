@@ -13,12 +13,12 @@ const moiPrzyjaciele = [
   {
     username: "minkii",
     tag: "eune",
+    game: "lol",
   },
-  { username: "lorekk", tag: "mucha" },
-  { username: "sledzionaaa", tag: "eune" },
-  { username: "dodi", tag: "goat" },
-  { username: "ak123133", tag: "CANT" },
-  //{ username: "meep meep", tag: "mlem" },
+  { username: "lorekk", tag: "mucha", game: "lol" },
+  { username: "sledzionaaa", tag: "eune", game: "lol" },
+  { username: "dodi", tag: "goat", game: "lol" },
+  { username: "ak123133", tag: "CANT", game: "lol" },
 ];
 client.once("ready", async () => {
   console.log(`Zalogowano jako ${client.user?.tag}`);
@@ -27,7 +27,9 @@ client.once("ready", async () => {
 
   if (channel && channel instanceof TextChannel) {
     for (const user of moiPrzyjaciele) {
-      await notifyAboutLastUserMatch(user.username, user.tag, ritoToken, channel);
+      if (user.game === "lol") {
+        await notifyAboutLastUserMatch(user.username, user.tag, ritoToken, channel);
+      }
     }
 
     process.exit(0);
