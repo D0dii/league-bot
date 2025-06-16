@@ -1,6 +1,6 @@
 import { TextChannel } from "discord.js";
 import { getUser, storeUser, updateUserLastMatchId } from "./db";
-import { getLastMatchId, getMatchDetails } from "./lol/utils";
+import { generateMessageToChannel, getLastMatchId, getMatchDetails } from "./lol/utils";
 
 export const getUserPuuid = async (username: string, tag: string, token: string) => {
   const url = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(
@@ -34,11 +34,12 @@ export const notifyAboutLastUserMatch = async (
   if (currentMatchId !== lastMatchIdFromDb) {
     const matchDetails = await getMatchDetails(currentMatchId, token);
     const player = matchDetails.info.participants.find((p: any) => p.puuid === userPuuid);
-    await channel.send(
-      `${player.riotIdGameName} zagrał ${matchDetails.info.gameMode}, ${
-        player.win ? "wygrał" : "przegrał"
-      }, miał ${player.kills} zabójstw i ${player.deaths} śmierci, grał ${player.championName}`
-    );
+    if (player.riotIdGameName === "lorekk") {
+      await channel.send("Loris ty nie ważne co robisz to do dupy ci idzie");
+    } else {
+      const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
+      await channel.send(`${player.riotIdGameName} zagrał grę i miał ${message}`);
+    }
     await updateUserLastMatchId(username, currentMatchId);
   } else {
     console.log(`No new match for ${username}`);

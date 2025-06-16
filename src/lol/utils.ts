@@ -12,3 +12,14 @@ export const getMatchDetails = async (matchId: string, token: string) => {
   if (!res.ok) throw new Error("Match details for league not found");
   return await res.json();
 };
+
+export const generateMessageToChannel = (kills: number, assists: number, deaths: number, isWon: boolean) => {
+  const kda = (kills + assists) / deaths;
+  if (kda > 1 && isWon) {
+    return `kda na plus równe ${kda}, a do tego wygrana`;
+  } else if (kda > 1 && !isWon) {
+    return `kda dobre: ${kda}, ale team nie pomógł i przejebał`;
+  } else {
+    return `kda do dupy: ${kda}${isWon ? ", ale wygrał na farcie" : " i do tego przegrana"}`;
+  }
+};
