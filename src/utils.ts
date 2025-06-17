@@ -28,7 +28,6 @@ export const notifyAboutLastUserMatch = async (
     userPuuid = await getUserPuuid(username, tag, token);
     await storeUser(username, userPuuid, "");
   }
-
   const currentMatchId = await getLastMatchId(userPuuid, token);
 
   if (currentMatchId !== lastMatchIdFromDb) {
@@ -47,3 +46,46 @@ export const notifyAboutLastUserMatch = async (
     console.log(`No new match for ${username}`);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Ciekawe czy to zobaczysz
