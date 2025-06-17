@@ -39,7 +39,7 @@ export const notifyAboutLastUserMatch = async (
     } else {
       const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
       await channel.send(
-        `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}`
+        `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}, trollował ${player.championName} w grze?`
       );
     }
     await updateUserLastMatchId(username, currentMatchId);
