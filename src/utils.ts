@@ -33,14 +33,12 @@ export const notifyAboutLastUserMatch = async (
   if (currentMatchId !== lastMatchIdFromDb) {
     const matchDetails = await getMatchDetails(currentMatchId, token);
     const player = matchDetails.info.participants.find((p: any) => p.puuid === userPuuid);
-    if (player.riotIdGameName === "lorekk") {
-      await channel.send("Loris ty nie ważne co robisz to do dupy ci idzie");
-    } else {
-      const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
-      await channel.send(
-        `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}, trollował ${player.championName} w grze?`
-      );
-    }
+
+    const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
+    await channel.send(
+      `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}, trollował ${player.championName} w grze?`
+    );
+
     await updateUserLastMatchId(username, currentMatchId);
   } else {
     console.log(`No new match for ${username}`);
