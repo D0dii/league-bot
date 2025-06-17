@@ -34,8 +34,8 @@ export const notifyAboutLastUserMatch = async (
   if (currentMatchId !== lastMatchIdFromDb) {
     const matchDetails = await getMatchDetails(currentMatchId, token);
     const player = matchDetails.info.participants.find((p: any) => p.puuid === userPuuid);
-    if (player.riotIdGameName === "lorekk") {
-      await channel.send("Loris ty nie ważne co robisz to do dupy ci idzie");
+    if (player.riotIdGameName === "Dodi") {
+      await channel.send("Dodi ty nie ważne co robisz to do dupy ci idzie"); // obiecany fix
     } else {
       const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
       await channel.send(
