@@ -1,6 +1,9 @@
 import { TextChannel } from "discord.js";
 import { getUser, storeUser, updateUserLastMatchId } from "./db";
+import fs from "fs/promises";
 import { generateMessageToChannel, getLastMatchId, getMatchDetails } from "./lol/utils";
+import z from "zod";
+import { FileValidateResult, userSchema } from "./types";
 
 export const getUserPuuid = async (username: string, tag: string, token: string) => {
   const url = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(
@@ -42,5 +45,22 @@ export const notifyAboutLastUserMatch = async (
     await updateUserLastMatchId(username, currentMatchId);
   } else {
     console.log(`No new match for ${username}`);
+  }
+};
+
+export const validateJsonFile = async (filePath: string): Promise<FileValidateResult> => {
+  try {
+    const data = await fs.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(data);
+
+    const result = z.array(userSchema).parse(parsed);
+    return { status: "success", result };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      console.error("❌ Validation errors:", err.errors);
+      return { status: "failed", message: "zod error" };
+    } else {
+      return { status: "failed", message: "file error" };
+    }
   }
 };

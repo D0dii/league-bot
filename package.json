@@ -15,7 +15,8 @@
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/node": "^24.0.1",
