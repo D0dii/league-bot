@@ -44,12 +44,12 @@ Before you start, ensure you have the following:
      ]
      ```
 
-4. Set environment variables:
+4. Set environment variables in .env file:
 
    ```bash
-   export DISCORD_TOKEN="your-discord-token"
-   export DISCORD_CHANNEL_ID="your-channel-id"
-   export RITO_CLIENT_TOKEN="your-riot-client-token"
+   DISCORD_TOKEN="your-discord-token"
+   DISCORD_CHANNEL_ID="your-channel-id"
+   RITO_CLIENT_TOKEN="your-riot-client-token"
    ```
 
 5. Run the bot:
