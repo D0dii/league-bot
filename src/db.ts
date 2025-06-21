@@ -12,22 +12,20 @@ export async function setupDb() {
   const db = await openDb();
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      puuid TEXT UNIQUE,
+      username TEXT PRIMARY KEY,
+      puuid TEXT NOT NULL,
+      tag TEXT,
       lastMatchId TEXT
     )
   `);
   return db;
 }
 
-export async function storeUser(username: string, puuid: string, lastMatchId: string) {
+export async function storeUser(username: string, puuid: string, tag: string, lastMatchId: string = "") {
   const db = await openDb();
   await db.run(
-    "INSERT OR REPLACE INTO users (username, puuid, lastMatchId) VALUES (?, ?, ?)",
-    username,
-    puuid,
-    lastMatchId
+    `INSERT OR REPLACE INTO users (username, puuid, tag, lastMatchId) VALUES (?, ?, ?, ?)`,
+    username, puuid, tag, lastMatchId
   );
 }
 

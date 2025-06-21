@@ -12,14 +12,17 @@
   "description": "",
   "dependencies": {
     "@types/sqlite3": "^3.1.11",
-    "discord.js": "^14.19.3",
+    "discord.js": "^14.20.0",
     "dotenv": "^16.5.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/node": "^24.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.3",
+    "jest": "^30.0.2",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
