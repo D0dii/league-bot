@@ -1,13 +1,8 @@
-import { Client, GatewayIntentBits, TextChannel, REST, Routes, SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import { Client, GatewayIntentBits, TextChannel, REST, Routes, SlashCommandBuilder } from "discord.js";
 import "dotenv/config";
-import { notifyAboutLastUserMatch, validateJsonFile } from "./utils";
-import { setupDb } from "./db";
-import fs from "fs/promises"; 
-import { userSchema } from "./types"; 
-import { generateMessageToChannel } from "./lol/utils"; 
-import { getUserPuuid, storeUser } from "./utils"; 
-import { getUser, storeUser as dbStoreUser, updateUserLastMatchId } from "./db"; 
-import { getLastMatchId, getMatchDetails } from "./lol/utils";
+import { notifyAboutLastUserMatch, validateJsonFile, getUserPuuid } from "./utils";
+import { setupDb, getUser, storeUser } from "./db";
+import { getMatchDetails } from "./lol/utils";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -15,7 +10,7 @@ const client = new Client({
 
 const ritoToken = process.env.RIOT_TOKEN ?? "";
 const channelId = process.env.CHANNEL_ID ?? "";
-const guildId = process.env.GUILD_ID ?? ""; 
+const guildId = process.env.GUILD_ID ?? "";
 
 async function registerSlashCommand() {
   const fileValidationResult = await validateJsonFile("people.json");
@@ -50,15 +45,26 @@ client.once("ready", async () => {
   console.log(`Zalogowano jako ${client.user?.tag}`);
   await registerSlashCommand();
   await setupDb();
-
+  setInterval(notifyUsers, 5 * 60 * 1000);
 });
+
+
+async function notifyUsers() {
+  const fileValidationResult = await validateJsonFile("people.json");
+  if (fileValidationResult.status !== "success") return;
+  const channel = await client.channels.fetch(channelId);
+  if (channel && channel instanceof TextChannel) {
+    for (const user of fileValidationResult.result) {
+      await notifyAboutLastUserMatch(user.username, user.tag, ritoToken, channel);
+    }
+  }
+}
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.commandName === "matches") {
     const username = interaction.options.getString("user", true);
 
-    
     const fileValidationResult = await validateJsonFile("people.json");
     if (fileValidationResult.status !== "success") {
       await interaction.reply("Błąd podczas wczytywania użytkowników.");
@@ -70,17 +76,13 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    
-    const dbUser = await (await import("./db")).getUser(user.username);
+    let dbUser = await getUser(user.username);
     let puuid = dbUser?.puuid;
     if (!puuid) {
-      
-      const { getUserPuuid, storeUser } = await import("./utils");
       puuid = await getUserPuuid(user.username, user.tag, ritoToken);
-      await storeUser(user.username, puuid, "");
+      await storeUser(user.username, puuid, user.tag);
     }
 
-    
     const url = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=3`;
     const res = await fetch(url, { headers: { "X-Riot-Token": ritoToken } });
     if (!res.ok) {
@@ -98,7 +100,6 @@ client.on("interactionCreate", async (interaction) => {
       const match = await getMatchDetails(matchId, ritoToken);
       const player = match.info.participants.find((p: any) => p.puuid === puuid);
       if (player) {
-        
         const timestamp = match.info.gameStartTimestamp;
         const date = new Date(timestamp);
         const formattedDate = `${date.getDate().toString().padStart(2, "0")}.${(date.getMonth()+1).toString().padStart(2, "0")}.${date.getFullYear().toString().slice(-2)}`;

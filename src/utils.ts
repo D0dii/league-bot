@@ -1,5 +1,5 @@
 import { TextChannel } from "discord.js";
-import { getUser, storeUser as dbStoreUser, updateUserLastMatchId } from "./db";
+import { getUser, storeUser, updateUserLastMatchId } from "./db";
 import fs from "fs/promises";
 import { generateMessageToChannel, getLastMatchId, getMatchDetails } from "./lol/utils";
 import z from "zod";
@@ -64,19 +64,3 @@ export const validateJsonFile = async (filePath: string): Promise<FileValidateRe
     }
   }
 };
-
-export async function storeUser(username: string, puuid: string, tag: string) {
- 
-  const existingUser = await getUser(username);
-  if (existingUser) {
-   
-    await dbStoreUser(username, puuid, tag);
-    return;
-  }
-  
-  await dbStoreUser(username, puuid, tag);
-  console.log(`User ${username} stored with PUUID: ${puuid}`);
-  return { username, puuid, tag };
-
-}
-
