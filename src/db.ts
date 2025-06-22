@@ -12,10 +12,11 @@ export async function setupDb() {
   const db = await openDb();
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      tag TEXT NOT NULL,
       puuid TEXT NOT NULL,
-      tag TEXT,
-      lastMatchId TEXT
+      lastMatchId TEXT,
+      PRIMARY KEY (username, tag)
     )
   `);
   return db;
@@ -24,17 +25,26 @@ export async function setupDb() {
 export async function storeUser(username: string, puuid: string, tag: string, lastMatchId: string = "") {
   const db = await openDb();
   await db.run(
-    `INSERT OR REPLACE INTO users (username, puuid, tag, lastMatchId) VALUES (?, ?, ?, ?)`,
-    username, puuid, tag, lastMatchId
+    `INSERT OR REPLACE INTO users (username, tag, puuid, lastMatchId) VALUES (?, ?, ?, ?)`,
+    username, tag, puuid, lastMatchId
   );
 }
 
-export async function getUser(username: string) {
+export async function getUser(username: string, tag: string) {
   const db = await openDb();
-  return db.get("SELECT * FROM users WHERE username = ?", username);
+  return db.get("SELECT * FROM users WHERE username = ? AND tag = ?", username, tag);
 }
 
-export async function updateUserLastMatchId(username: string, lastMatchId: string) {
+export async function updateUserLastMatchId(username: string, tag: string, lastMatchId: string) {
   const db = await openDb();
-  await db.run("UPDATE users SET lastMatchId = ? WHERE username = ?", lastMatchId, username);
+  await db.run("UPDATE users SET lastMatchId = ? WHERE username = ? AND tag = ?", lastMatchId, username, tag);
+}
+
+// New function to store user with only username and puuid
+export async function storeUserMinimal(username: string, puuid: string) {
+  const db = await openDb();
+  await db.run(
+    `INSERT OR REPLACE INTO users (username, puuid) VALUES (?, ?)`,
+    username, puuid
+  );
 }

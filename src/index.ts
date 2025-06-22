@@ -76,7 +76,7 @@ client.on("interactionCreate", async (interaction) => {
       return;
     }
 
-    let dbUser = await getUser(user.username);
+    let dbUser = await getUser(user.username, user.tag);
     let puuid = dbUser?.puuid;
     if (!puuid) {
       puuid = await getUserPuuid(user.username, user.tag, ritoToken);
@@ -111,3 +111,12 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+(async () => {
+  const fileValidationResult = await validateJsonFile("people.json");
+  if (fileValidationResult.status !== "success") {
+    console.error("❌ Błąd walidacji people.json:", fileValidationResult.message);
+    return;
+  }
+  console.log(`✅ Wczytano ${fileValidationResult.result.length} użytkowników z people.json`);
+})();
