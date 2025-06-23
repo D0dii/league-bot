@@ -12,11 +12,11 @@ export async function setupDb() {
   const db = await openDb();
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL,
       tag TEXT NOT NULL,
-      puuid TEXT NOT NULL,
-      lastMatchId TEXT,
-      PRIMARY KEY (username, tag)
+      puuid TEXT UNIQUE,
+      lastMatchId TEXT
     )
   `);
   return db;
