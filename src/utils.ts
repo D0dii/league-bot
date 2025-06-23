@@ -1,7 +1,7 @@
 import { TextChannel } from "discord.js";
 import { getUser, storeUser, updateUserLastMatchId } from "./db";
 import fs from "fs/promises";
-import { generateMessageToChannel, getLastMatchId, getMatchDetails } from "./lol/utils";
+import { generateMessageToChannel, getLastMatchId as getLastMatchIdFromLolUtils, getMatchDetails } from "./lol/utils";
 import z from "zod";
 import { FileValidateResult, userSchema } from "./types";
 
@@ -21,7 +21,7 @@ export const notifyAboutLastUserMatch = async (
   token: string,
   channel: TextChannel
 ) => {
-  let user = await getUser(username);
+  let user = await getUser(username, tag);
   let userPuuid: string;
   let lastMatchIdFromDb: string | null = null;
   if (user) {
@@ -31,7 +31,7 @@ export const notifyAboutLastUserMatch = async (
     userPuuid = await getUserPuuid(username, tag, token);
     await storeUser(username, userPuuid, "");
   }
-  const currentMatchId = await getLastMatchId(userPuuid, token);
+  const currentMatchId = await getLastMatchIdFromLolUtils(userPuuid, token);
 
   if (currentMatchId !== lastMatchIdFromDb) {
     const matchDetails = await getMatchDetails(currentMatchId, token);
@@ -42,7 +42,7 @@ export const notifyAboutLastUserMatch = async (
       `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}, trollował ${player.championName} w grze?`
     );
 
-    await updateUserLastMatchId(username, currentMatchId);
+    await updateUserLastMatchId(username, tag, currentMatchId);
   } else {
     console.log(`No new match for ${username}`);
   }
@@ -63,4 +63,16 @@ export const validateJsonFile = async (filePath: string): Promise<FileValidateRe
       return { status: "failed", message: "file error" };
     }
   }
+};
+
+export const getLastMatchIdFromApi = async (puuid: string, token: string) => {
+  const url = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1`;
+  const res = await fetch(url, { headers: { "X-Riot-Token": token ?? "" } });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Matches for league not found: ${errorText}`);
+  }
+  const data = await res.json();
+  if (!data || !data.length) throw new Error("No matches found for this user");
+  return data[0];
 };
