@@ -1,4 +1,3 @@
-import { ChatInputCommandInteraction } from "discord.js";
 import { getUser, storeUser } from "../db";
 import { User } from "../types";
 import { getUserPuuid } from "../utils";

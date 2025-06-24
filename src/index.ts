@@ -1,85 +1,47 @@
-import { Client, GatewayIntentBits, TextChannel, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import "dotenv/config";
-import { notifyAboutLastUserMatch, validateJsonFile } from "./utils";
+import { validateJsonFile } from "./utils";
 import { setupDb } from "./db";
-import { getLastThreeUserMatches } from "./lol/utils";
-import { User } from "./types";
+import {
+  handleMatchesCommand,
+  registerLastThreeMatchesCommand,
+} from "./utils/registerLastThreeMatchesCommand";
+import { notifyUsers } from "./utils/notifyUsersAboutMatch";
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
-});
+const main = async () => {
+  const client = new Client({
+    intents: [GatewayIntentBits.Guilds],
+  });
 
-const ritoToken = process.env.RIOT_TOKEN ?? "";
-const channelId = process.env.CHANNEL_ID ?? "";
-const guildId = process.env.GUILD_ID ?? "";
-const discordToken = process.env.DISCORD_TOKEN ?? "";
+  const riotToken = process.env.RIOT_TOKEN ?? "";
+  const channelId = process.env.CHANNEL_ID ?? "";
+  const guildId = process.env.GUILD_ID ?? "";
+  const discordToken = process.env.DISCORD_TOKEN ?? "";
 
-async function registerSlashCommand(users: User[]) {
-  const choices = users.map((user) => ({
-    name: user.username,
-    value: user.username,
-  }));
-
-  const command = new SlashCommandBuilder()
-    .setName("matches")
-    .setDescription("Pokaż ostatnie 3 mecze wybranego gracza")
-    .addStringOption((option) =>
-      option
-        .setName("user")
-        .setDescription("Wybierz gracza")
-        .setRequired(true)
-        .addChoices(...choices)
-    );
-
-  const rest = new REST({ version: "10" }).setToken(discordToken);
-  await rest.put(
-    guildId
-      ? Routes.applicationGuildCommands(client.user!.id, guildId)
-      : Routes.applicationCommands(client.user!.id),
-    { body: [command.toJSON()] }
-  );
-}
-
-client.once("ready", async () => {
-  console.log(`Zalogowano jako ${client.user?.tag}`);
   const fileValidationResult = await validateJsonFile("people.json");
+
   if (fileValidationResult.status !== "success") {
     console.log(fileValidationResult.message);
     return;
   }
-  await setupDb();
-  await registerSlashCommand(fileValidationResult.result);
-  setInterval(() => notifyUsers(fileValidationResult.result), 5 * 60 * 1000);
-});
 
-async function notifyUsers(users: User[]) {
-  const channel = await client.channels.fetch(channelId);
-  if (channel && channel instanceof TextChannel) {
-    for (const user of users) {
-      await notifyAboutLastUserMatch(user.username, user.tag, ritoToken, channel);
+  client.once("ready", async () => {
+    console.log(`Zalogowano jako ${client.user?.tag}`);
+
+    await setupDb();
+    await registerLastThreeMatchesCommand(fileValidationResult.result, discordToken, guildId, client);
+    setInterval(() => notifyUsers(fileValidationResult.result, client, channelId, riotToken), 5 * 60 * 1000);
+  });
+
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName === "matches") {
+      const reply = await handleMatchesCommand(interaction, riotToken, fileValidationResult.result);
+      await interaction.reply(reply);
     }
-  }
-}
+  });
 
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName === "matches") {
-    const username = interaction.options.getString("user", true);
+  client.login(discordToken);
+};
 
-    const fileValidationResult = await validateJsonFile("people.json");
-    if (fileValidationResult.status !== "success") {
-      await interaction.reply("Błąd podczas wczytywania użytkowników.");
-      return;
-    }
-    const user = fileValidationResult.result.find((u) => u.username === username);
-    if (!user) {
-      await interaction.reply("Nie znaleziono użytkownika.");
-      return;
-    }
-
-    const reply = await getLastThreeUserMatches(user, ritoToken);
-    await interaction.reply(reply);
-  }
-});
-
-client.login(discordToken);
+main();

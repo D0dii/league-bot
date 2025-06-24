@@ -1,11 +1,4 @@
-import { TextChannel } from "discord.js";
-import { getUser, storeUser, updateUserLastMatchId } from "./db";
 import fs from "fs/promises";
-import {
-  generateMessageToChannel,
-  getLastMatchId as getLastMatchIdFromLolUtils,
-  getMatchDetails,
-} from "./lol/utils";
 import z from "zod";
 import { FileValidateResult, userSchema } from "./types";
 
@@ -17,39 +10,6 @@ export const getUserPuuid = async (username: string, tag: string, token: string)
   if (!res.ok) throw new Error("Nie znaleziono gracza");
   const data = await res.json();
   return data.puuid;
-};
-
-export const notifyAboutLastUserMatch = async (
-  username: string,
-  tag: string,
-  token: string,
-  channel: TextChannel
-) => {
-  let user = await getUser(username, tag);
-  let userPuuid: string;
-  let lastMatchIdFromDb: string | null = null;
-  if (user) {
-    userPuuid = user.puuid;
-    lastMatchIdFromDb = user.lastMatchId;
-  } else {
-    userPuuid = await getUserPuuid(username, tag, token);
-    await storeUser(username, userPuuid, tag, "");
-  }
-  const currentMatchId = await getLastMatchIdFromLolUtils(userPuuid, token);
-
-  if (currentMatchId !== lastMatchIdFromDb) {
-    const matchDetails = await getMatchDetails(currentMatchId, token);
-    const player = matchDetails.info.participants.find((p: any) => p.puuid === userPuuid);
-
-    const message = generateMessageToChannel(player.kills, player.assists, player.kills, player.win);
-    await channel.send(
-      `${player.riotIdGameName} zagrał grę ${matchDetails.info.gameMode} i miał ${message}, trollował ${player.championName} w grze?`
-    );
-
-    await updateUserLastMatchId(username, tag, currentMatchId);
-  } else {
-    console.log(`No new match for ${username}`);
-  }
 };
 
 export const validateJsonFile = async (filePath: string): Promise<FileValidateResult> => {
@@ -67,16 +27,4 @@ export const validateJsonFile = async (filePath: string): Promise<FileValidateRe
       return { status: "failed", message: "file error" };
     }
   }
-};
-
-export const getLastMatchIdFromApi = async (puuid: string, token: string) => {
-  const url = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=1`;
-  const res = await fetch(url, { headers: { "X-Riot-Token": token ?? "" } });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Matches for league not found: ${errorText}`);
-  }
-  const data = await res.json();
-  if (!data || !data.length) throw new Error("No matches found for this user");
-  return data[0];
 };
