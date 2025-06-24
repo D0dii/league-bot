@@ -1,7 +1,11 @@
 import { TextChannel } from "discord.js";
 import { getUser, storeUser, updateUserLastMatchId } from "./db";
 import fs from "fs/promises";
-import { generateMessageToChannel, getLastMatchId as getLastMatchIdFromLolUtils, getMatchDetails } from "./lol/utils";
+import {
+  generateMessageToChannel,
+  getLastMatchId as getLastMatchIdFromLolUtils,
+  getMatchDetails,
+} from "./lol/utils";
 import z from "zod";
 import { FileValidateResult, userSchema } from "./types";
 
@@ -29,7 +33,7 @@ export const notifyAboutLastUserMatch = async (
     lastMatchIdFromDb = user.lastMatchId;
   } else {
     userPuuid = await getUserPuuid(username, tag, token);
-    await storeUser(username, userPuuid, "");
+    await storeUser(username, userPuuid, tag, "");
   }
   const currentMatchId = await getLastMatchIdFromLolUtils(userPuuid, token);
 

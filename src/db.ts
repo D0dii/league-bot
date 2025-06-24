@@ -26,7 +26,10 @@ export async function storeUser(username: string, puuid: string, tag: string, la
   const db = await openDb();
   await db.run(
     `INSERT OR REPLACE INTO users (username, tag, puuid, lastMatchId) VALUES (?, ?, ?, ?)`,
-    username, tag, puuid, lastMatchId
+    username,
+    tag,
+    puuid,
+    lastMatchId
   );
 }
 
@@ -38,13 +41,4 @@ export async function getUser(username: string, tag: string) {
 export async function updateUserLastMatchId(username: string, tag: string, lastMatchId: string) {
   const db = await openDb();
   await db.run("UPDATE users SET lastMatchId = ? WHERE username = ? AND tag = ?", lastMatchId, username, tag);
-}
-
-// New function to store user with only username and puuid
-export async function storeUserMinimal(username: string, puuid: string) {
-  const db = await openDb();
-  await db.run(
-    `INSERT OR REPLACE INTO users (username, puuid) VALUES (?, ?)`,
-    username, puuid
-  );
 }

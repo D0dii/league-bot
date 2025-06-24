@@ -1,8 +1,9 @@
 import { Client, GatewayIntentBits, TextChannel, REST, Routes, SlashCommandBuilder } from "discord.js";
 import "dotenv/config";
-import { notifyAboutLastUserMatch, validateJsonFile, getUserPuuid } from "./utils";
-import { setupDb, getUser, storeUser } from "./db";
-import { getMatchDetails } from "./lol/utils";
+import { notifyAboutLastUserMatch, validateJsonFile } from "./utils";
+import { setupDb } from "./db";
+import { getLastThreeUserMatches } from "./lol/utils";
+import { User } from "./types";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
@@ -11,12 +12,10 @@ const client = new Client({
 const ritoToken = process.env.RIOT_TOKEN ?? "";
 const channelId = process.env.CHANNEL_ID ?? "";
 const guildId = process.env.GUILD_ID ?? "";
+const discordToken = process.env.DISCORD_TOKEN ?? "";
 
-async function registerSlashCommand() {
-  const fileValidationResult = await validateJsonFile("people.json");
-  if (fileValidationResult.status !== "success") return;
-
-  const choices = fileValidationResult.result.map((user) => ({
+async function registerSlashCommand(users: User[]) {
+  const choices = users.map((user) => ({
     name: user.username,
     value: user.username,
   }));
@@ -24,7 +23,7 @@ async function registerSlashCommand() {
   const command = new SlashCommandBuilder()
     .setName("matches")
     .setDescription("Pokaż ostatnie 3 mecze wybranego gracza")
-    .addStringOption(option =>
+    .addStringOption((option) =>
       option
         .setName("user")
         .setDescription("Wybierz gracza")
@@ -32,7 +31,7 @@ async function registerSlashCommand() {
         .addChoices(...choices)
     );
 
-  const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN ?? "");
+  const rest = new REST({ version: "10" }).setToken(discordToken);
   await rest.put(
     guildId
       ? Routes.applicationGuildCommands(client.user!.id, guildId)
@@ -43,18 +42,20 @@ async function registerSlashCommand() {
 
 client.once("ready", async () => {
   console.log(`Zalogowano jako ${client.user?.tag}`);
-  await registerSlashCommand();
+  const fileValidationResult = await validateJsonFile("people.json");
+  if (fileValidationResult.status !== "success") {
+    console.log(fileValidationResult.message);
+    return;
+  }
   await setupDb();
-  setInterval(notifyUsers, 5 * 60 * 1000);
+  await registerSlashCommand(fileValidationResult.result);
+  setInterval(() => notifyUsers(fileValidationResult.result), 5 * 60 * 1000);
 });
 
-
-async function notifyUsers() {
-  const fileValidationResult = await validateJsonFile("people.json");
-  if (fileValidationResult.status !== "success") return;
+async function notifyUsers(users: User[]) {
   const channel = await client.channels.fetch(channelId);
   if (channel && channel instanceof TextChannel) {
-    for (const user of fileValidationResult.result) {
+    for (const user of users) {
       await notifyAboutLastUserMatch(user.username, user.tag, ritoToken, channel);
     }
   }
@@ -70,53 +71,15 @@ client.on("interactionCreate", async (interaction) => {
       await interaction.reply("Błąd podczas wczytywania użytkowników.");
       return;
     }
-    const user = fileValidationResult.result.find(u => u.username === username);
+    const user = fileValidationResult.result.find((u) => u.username === username);
     if (!user) {
       await interaction.reply("Nie znaleziono użytkownika.");
       return;
     }
 
-    let dbUser = await getUser(user.username, user.tag);
-    let puuid = dbUser?.puuid;
-    if (!puuid) {
-      puuid = await getUserPuuid(user.username, user.tag, ritoToken);
-      await storeUser(user.username, puuid, user.tag);
-    }
-
-    const url = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=3`;
-    const res = await fetch(url, { headers: { "X-Riot-Token": ritoToken } });
-    if (!res.ok) {
-      await interaction.reply("Nie udało się pobrać meczów.");
-      return;
-    }
-    const matchIds: string[] = await res.json();
-    if (!matchIds.length) {
-      await interaction.reply("Brak meczów.");
-      return;
-    }
-
-    let reply = `Ostatnie 3 mecze gracza **${user.username}**:\n`;
-    for (const matchId of matchIds) {
-      const match = await getMatchDetails(matchId, ritoToken);
-      const player = match.info.participants.find((p: any) => p.puuid === puuid);
-      if (player) {
-        const timestamp = match.info.gameStartTimestamp;
-        const date = new Date(timestamp);
-        const formattedDate = `${date.getDate().toString().padStart(2, "0")}.${(date.getMonth()+1).toString().padStart(2, "0")}.${date.getFullYear().toString().slice(-2)}`;
-        reply += `• ${match.info.gameMode} | ${player.championName} | K/D/A: ${player.kills}/${player.deaths}/${player.assists} | ${player.win ? "Wygrana" : "Przegrana"} | ${formattedDate}\n`;
-      }
-    }
+    const reply = await getLastThreeUserMatches(user, ritoToken);
     await interaction.reply(reply);
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
-
-(async () => {
-  const fileValidationResult = await validateJsonFile("people.json");
-  if (fileValidationResult.status !== "success") {
-    console.error("❌ Błąd walidacji people.json:", fileValidationResult.message);
-    return;
-  }
-  console.log(`✅ Wczytano ${fileValidationResult.result.length} użytkowników z people.json`);
-})();
+client.login(discordToken);
